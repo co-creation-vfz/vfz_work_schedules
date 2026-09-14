@@ -1,0 +1,180 @@
+# =============================================================================
+# segredo.ini — VFZ Work Schedule integrations configuration
+#
+# ONE file for both integrations. They share a database, a table, a Wrike
+# account and a log collector, so keeping two copies meant a credential
+# rotation had to be done twice — with the second copy discovered only when
+# something failed.
+#
+# This is the COMMITTED TEMPLATE. Copy it to segredo.ini and fill in the
+# blanked values; segredo.ini itself is gitignored and never committed.
+#
+# Read by:
+#   vfz_workschedule_db_resync/  — [wrike] [database] [papertrail] [db_resync]
+#   vfz_workschedule_emails/     — every section
+# =============================================================================
+
+[wrike]
+# Wrike API permanent token — the Co-creation integration bot account.
+api_token    =
+
+# The VodafoneZiggo account is EU-hosted. The US endpoint
+# (https://www.wrike.com/api/v4) answers 401 for an EU token, which reads as a
+# bad token rather than a wrong host.
+api_base_url = https://app-eu.wrike.com/api/v4
+
+# Seconds before a Wrike call is abandoned and retried.
+request_timeout = 30
+
+# Co-Creation Flow space. Only approvals on tasks in here are ever notified on.
+space_id = MQAAAAEEuHGf
+
+# Tasks under this parent are deleted; they are skipped.
+recycle_bin_id = IEAFXAOHI7777776
+
+# Wrike custom field holding the project lead, read off the approval's task.
+# Tried before the fallback contact when no approver on the approval is
+# working — which is the whole point of the escalation: the lead owns the work
+# and is a closer, better-informed contact than a shared support account.
+#
+# Empty disables the lookup, and disabling it is silent: every stuck approval
+# then goes straight to fallback_contact_id below, which looks like working
+# behaviour and is easy to miss. Leave it set.
+#
+# Leads who are themselves not working today are dropped rather than tagged,
+# so a lead on leave falls through to the fallback like anyone else.
+project_lead_field_id = IEAFXAOHJUAEGYZF
+
+# Co-Creation Support. Tagged when no approver and no project lead is working.
+fallback_contact_id = KUARF54C
+
+
+[database]
+# MySQL — the shared VFZ work-schedule RDS instance.
+host     = vfz-wrike-integration.cj6hvdyvczrr.eu-north-1.rds.amazonaws.com
+name     = vfz-wrike-workschedule-v1
+user     = admin
+password =
+port     = 3306
+
+# Seconds before a connection attempt is abandoned.
+timeout_seconds = 30
+
+# Written by the DB Resync, read by both. The two integrations MUST agree on
+# this name — it is the whole contract between them.
+non_working_table = work_schedule_non_working_days
+
+# One row per resync run, written by the DB Resync at the end of every run and
+# read by the dashboard's "last sync". It lives in the database rather than in
+# the service's memory so a cron run — a separate process — shows up there.
+runs_table = work_schedule_resync_runs
+
+# Owned by the Emails job. Its two child tables are named after it
+# (…_non_working, …_comments), so pointing this at a scratch table moves them.
+notifications_table = approval_notifications
+
+# Approvals suppressed as pre-go-live.
+baseline_table = baselined_approvals
+
+
+[papertrail]
+# SolarWinds (formerly Papertrail) HTTP log endpoint and API token. The same
+# collector the process-simplification integrations use, so every VFZ service
+# reports into one place.
+url   = https://logs.collector.eu-01.cloud.solarwinds.com/v1/logs
+token =
+
+# Empty sends to SolarWinds. "print_only" prints locally and sends nothing —
+# use it when developing against live data. "do_nothing" silences the logger.
+mode =
+
+
+[db_resync]
+# Workschedule DB Resync — expands Wrike work schedules into dates.
+# Bound to loopback: the dashboard is the only caller and it runs on the same
+# host, so there is nothing to gain from a public interface and nothing to
+# authenticate. Widen this only alongside auth in front of it.
+bind = 127.0.0.1
+port = 5007
+
+# Log keyword. One per integration, stable forever: it is the search term that
+# isolates this service's lines in SolarWinds.
+log_keyword = vfz_workschedule_db_resync
+
+# Work schedules are evaluated in South African time, which is what the host
+# clock and CRON_TZ are set to. The date matters: at 01:00 in Johannesburg it
+# is still the previous day in UTC.
+timezone = Africa/Johannesburg
+
+# Saturday/Sunday are out of scope, and are never written as non-working days.
+skip_weekends = true
+
+# Length of the window a run materialises, in days, counting today. 1 = today
+# only, which is what a daily cron needs. Note the consequence: a date with no
+# rows reads as "everyone is working", so if a run is missed nothing covers
+# that day. Alert on the cron.
+horizon_days = 1
+
+# Local schedule file, for --source json (testing without a Wrike token).
+schedules_file = schedules.json
+
+# Blast-radius guard. A schedule with fewer members than the minimum is never
+# guarded — a small team sharing a day off is normal. Above it, refusing to
+# write when more than the fraction would newly go non-working on one date
+# stops a misread or an unreviewed bulk change reaching a live Wrike task.
+min_schedule_size_for_guard = 10
+max_non_working_fraction = 0.5
+
+
+[emails]
+# Workschedule Emails — the off-day approver notifier.
+# Loopback, for the same reason as [db_resync] above.
+bind = 127.0.0.1
+port = 5008
+
+log_keyword = vfz_workschedule_emails
+
+# Defines "today" and the notification window. Match CRON_TZ on the host. SAST
+# has no DST, so once both are pinned here they stay in step year-round.
+timezone = Africa/Johannesburg
+
+# Notification window. Start is inclusive, end exclusive (24 means it never
+# closes). Enforced in code as a backstop, so a mistimed or manual run cannot
+# comment at 03:00. Keep in step with the crontab.
+notify_start_hour = 8
+notify_end_hour = 18
+
+# Minutes after notify_start_hour to wait before declaring the DB Resync late.
+# An empty non-working table is ambiguous — nobody is off, or the resync
+# failed — and past this point it is treated as a failure and said out loud.
+upstream_grace_minutes = 10
+
+# true shows what would be posted without posting or recording anything.
+dry_run = false
+
+
+[availability]
+# Workschedule Availability API — answers "who is not working today" for
+# Workato. Unlike the other two, this one is called from OUTSIDE the host, so
+# it binds publicly and requires a bearer token.
+bind = 0.0.0.0
+port = 5009
+
+log_keyword = vfz_workschedule_availability
+
+timezone = Africa/Johannesburg
+
+# Bearer token Workato sends in the Authorization header. REQUIRED: an empty
+# value refuses to start, because this endpoint is reachable from the internet.
+# Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+api_token = 
+
+# Seconds to serve today's list from memory before re-reading MySQL. The table
+# is rewritten once a day by the resync, and Workato calls this on every @tag,
+# so nearly every request should be answered without touching the database.
+# Low enough that a manual resync shows up promptly.
+cache_ttl_seconds = 60
+
+# Requests between rolled-up log lines. Logging every request would mean a POST
+# to SolarWinds per @tag, which would cost more than the request it describes.
+log_every_requests = 200

@@ -1,0 +1,20 @@
+# VFZ Work Schedule integrations — one environment for both.
+#
+#   python -m venv .venv
+#   .venv/bin/pip install -r requirements.txt
+
+# Both services
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.8
+requests>=2.31,<3
+mysql-connector-python>=8.4   # the driver the other VFZ integrations use
+
+# zoneinfo has no bundled tz database on Windows; harmless on Linux. Without it
+# the configured timezone cannot be resolved at all.
+tzdata>=2024.1
+
+# Tests. Kept here rather than in a separate dev file: the suites need no
+# database and no credentials, so there is no reason not to be able to run them
+# wherever the code is.
+pytest>=8.0

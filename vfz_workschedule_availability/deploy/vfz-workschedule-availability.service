@@ -1,0 +1,30 @@
+# systemd unit for the Workschedule Availability API.
+#
+#   sudo cp deploy/vfz-workschedule-availability.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now vfz-workschedule-availability
+#   sudo systemctl status vfz-workschedule-availability
+#   journalctl -u vfz-workschedule-availability -f
+#
+# Adjust User, WorkingDirectory and the venv path for the box.
+
+[Unit]
+Description=VFZ Workschedule Availability API for Workato (port 5009)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/srv/vfz_work_schedule/vfz_workschedule_availability
+# Config comes from ../shared/segredo.ini, so nothing secret belongs here.
+ExecStart=/srv/vfz_work_schedule/.venv/bin/python vfz_workschedule_availability_main.py
+Restart=always
+RestartSec=5
+# uvicorn writes to stdout/stderr; journald keeps it. SolarWinds gets the
+# structured log lines independently, and that is the one to read first.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

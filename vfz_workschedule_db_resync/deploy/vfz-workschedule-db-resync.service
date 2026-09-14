@@ -1,0 +1,30 @@
+# systemd unit for the Workschedule DB Resync service.
+#
+#   sudo cp deploy/vfz-workschedule-db-resync.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now vfz-workschedule-db-resync
+#   sudo systemctl status vfz-workschedule-db-resync
+#   journalctl -u vfz-workschedule-db-resync -f
+#
+# Adjust User, WorkingDirectory and the venv path for the box.
+
+[Unit]
+Description=VFZ Workschedule DB Resync (port 5007)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/srv/vfz_work_schedule/vfz_workschedule_db_resync
+# Config comes from ../shared/segredo.ini, so nothing secret belongs here.
+ExecStart=/srv/vfz_work_schedule/.venv/bin/python vfz_workschedule_db_resync_main.py
+Restart=always
+RestartSec=5
+# uvicorn writes to stdout/stderr; journald keeps it. SolarWinds gets the
+# structured log lines independently, and that is the one to read first.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

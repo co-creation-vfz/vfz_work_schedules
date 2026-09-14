@@ -1,0 +1,33 @@
+# systemd unit for the Workschedule Emails manual-trigger service.
+#
+#   sudo cp deploy/vfz-workschedule-emails.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now vfz-workschedule-emails
+#   sudo systemctl status vfz-workschedule-emails
+#   journalctl -u vfz-workschedule-emails -f
+#
+# This service is the MANUAL trigger only. The hourly job stays on cron
+# (scripts/vfz-workschedule-emails.crontab) -- installing this does not replace it,
+# and running only this would mean nobody is ever notified unless a person
+# clicks. Install both.
+#
+# Adjust User, WorkingDirectory and the venv path for the box.
+
+[Unit]
+Description=VFZ Workschedule Emails - off-day approver notifier trigger (port 5008)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/srv/vfz_work_schedule/vfz_workschedule_emails
+# Config comes from ../shared/segredo.ini, so nothing secret belongs here.
+ExecStart=/srv/vfz_work_schedule/.venv/bin/python vfz_workschedule_emails_main.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

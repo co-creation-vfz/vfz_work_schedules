@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "Weekday patterns and their members, mirroring the Wrike work schedules.",
+    "Copy to schedules.json and edit. Use this when you would rather not give",
+    "the populator a Wrike API token; otherwise run with --source wrike.",
+    "workingDays accepts day names, three-letter abbreviations, or ISO numbers",
+    "(1 = Monday ... 7 = Sunday). List only the days each schedule works;",
+    "every other weekday becomes a non-working date. Weekends are never",
+    "written, and schedule exclusions (leave, holidays) are out of scope.",
+    "scheduleType is optional: a user on both a 'Default' and a 'Custom'",
+    "schedule takes the custom one."
+  ],
+  "schedules": [
+    {
+      "workScheduleId": "IEAFXAOHMIACBYHE",
+      "workScheduleTitle": "Default Schedule",
+      "scheduleType": "Default",
+      "workingDays": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+      "users": [{ "userId": "KUAQIONK", "user": "Example Person" }]
+    },
+    {
+      "workScheduleId": "IEAFXAOHMIACBDCL",
+      "workScheduleTitle": "Testing",
+      "scheduleType": "Custom",
+      "workingDays": ["Tue", "Wed", "Thu"],
+      "users": [
+        { "userId": "KUATAIRI", "user": "Abigail Hlalele" },
+        { "userId": "KUAW3EHG", "user": "Second Tester" }
+      ]
+    },
+    {
+      "workScheduleId": "IEAFXAOHMIAAAIM2",
+      "workScheduleTitle": "Default Schedule test",
+      "scheduleType": "Custom",
+      "workingDays": [1, 2, 3, 4],
+      "users": [{ "userId": "KUAP56WO", "user": "Four Day Person" }]
+    }
+  ]
+}

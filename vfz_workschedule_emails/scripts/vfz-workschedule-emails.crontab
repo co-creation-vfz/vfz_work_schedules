@@ -1,0 +1,64 @@
+# VFZ Work Schedule integrations - crontab
+#
+# Install for the service user:
+#     crontab -e          # paste the lines below
+#     crontab -l          # confirm
+#
+# Or drop in as a system crontab, adding a user column between the schedule
+# and the command:
+#     sudo cp vfz-workschedule-emails.crontab /etc/cron.d/vfz-workschedule
+#     sudo chmod 644 /etc/cron.d/vfz-workschedule
+
+# Cron runs in the system timezone, usually UTC. Both jobs decide "today" and
+# the notification window from [emails]/[db_resync] timezone in segredo.ini,
+# but the schedules below are clock time -- so pin cron to the same zone or the
+# two drift apart at every DST change.
+CRON_TZ=Africa/Johannesburg
+
+# Cron sets almost no PATH. flock and date must be resolvable.
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Both entries call a wrapper, never an interpreter path directly. The wrapper
+# locates the venv -- which does not have to be called .venv -- and checks it
+# can import the dependencies before running. A crontab line naming
+# .venv/bin/python on a box whose venv is named something else exits 127 before
+# Python starts, and with the output discarded that is completely silent.
+# Set VFZ_PYTHON here to override the search on an unusual box.
+
+# Silence cron's own mail; the wrapper writes its own log and everything goes
+# to SolarWinds regardless.
+MAILTO=""
+
+# ---------------------------------------------------------------------------
+# DB Resync - daily at 03:00
+#
+# The wrapper resolves the shared venv at the repo root, takes a lock and
+# writes its own log, so none of that has to live in this line.
+#
+# Replaces the whole table with whoever is off today. Runs every day, not just
+# weekdays: a weekend run writes zero rows (weekends are never non-working
+# days) and Monday's 03:00 run repopulates before the first Emails run at
+# 08:00. Five hours of margin, so a slow or failed run has room to be noticed.
+# ---------------------------------------------------------------------------
+0 3 * * * /srv/vfz_work_schedule/vfz_workschedule_db_resync/scripts/run-resync.sh
+
+# ---------------------------------------------------------------------------
+# Emails - every 10 minutes, 08:00 to 17:50, Monday to Friday
+#
+# 8-17 with */10 gives 08:00 through 17:50. notify_end_hour is EXCLUSIVE, so
+# 17:50 is the last slot inside the window and nothing is wasted.
+#
+# The window is deliberately expressed twice: here, and as notify_start_hour /
+# notify_end_hour in segredo.ini. Cron decides when the process starts; the
+# in-code check is the backstop that stops a mistimed or manual run commenting
+# at 03:00. KEEP THE TWO IN AGREEMENT - they are currently 08:00-18:00.
+#
+# The wrapper takes a lock, so a run that overruns its ten minutes is not
+# joined by the next one. That matters: two concurrent runs could both read an
+# empty notification history and post the same comment twice.
+#
+# No separate upstream-late entry is needed. Running every ten minutes means
+# the 08:10 slot already falls just past upstream_grace_minutes, so a missed
+# resync is reported within ten minutes rather than an hour.
+# ---------------------------------------------------------------------------
+*/10 8-17 * * 1-5 /srv/vfz_work_schedule/vfz_workschedule_emails/scripts/run-notifier.sh

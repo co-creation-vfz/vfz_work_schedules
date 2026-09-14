@@ -1,0 +1,47 @@
+{
+  "kind": "workschedules",
+  "data": [
+    {
+      "id": "IEAFXAOHMIACBYHE",
+      "scheduleType": "Default",
+      "title": "Default Schedule",
+      "workweek": [{ "workDays": ["Mon", "Tue", "Wed", "Thu", "Fri"], "capacityMinutes": 480 }],
+      "userIds": ["KUAQIONK", "KUAPBJP7", "KUAQPD3I"]
+    },
+    {
+      "id": "IEAFXAOHMIAAAIM2",
+      "scheduleType": "Custom",
+      "title": "Default Schedule test",
+      "workweek": [{ "workDays": ["Mon", "Tue", "Wed", "Thu"], "capacityMinutes": 480 }],
+      "userIds": ["KUAP56WO"]
+    },
+    {
+      "id": "IEAFXAOHMIACBDCL",
+      "scheduleType": "Custom",
+      "title": "Testing",
+      "workweek": [{ "workDays": ["Tue", "Wed", "Thu"], "capacityMinutes": 480 }],
+      "userIds": ["KUAW3EHG", "KUATAIRI"]
+    },
+    {
+      "id": "IEAFXAOHMIACBDHV",
+      "scheduleType": "Custom",
+      "title": "Brand Team",
+      "workweek": [{ "workDays": ["Mon", "Tue", "Wed", "Thu", "Fri"], "capacityMinutes": 480 }],
+      "userIds": []
+    },
+    {
+      "id": "IEAFXAOHMIACBDHW",
+      "scheduleType": "Custom",
+      "title": "Studio",
+      "workweek": [{ "workDays": ["Mon", "Tue", "Wed", "Thu", "Fri"], "capacityMinutes": 480 }],
+      "userIds": ["KUAP5OS3"]
+    },
+    {
+      "id": "IEAFXAOHMIACBD3F",
+      "scheduleType": "Custom",
+      "title": "Half day schedule",
+      "workweek": [{ "workDays": ["Mon", "Tue", "Wed", "Thu", "Fri"], "capacityMinutes": 480 }],
+      "userIds": []
+    }
+  ]
+}

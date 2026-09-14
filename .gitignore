@@ -1,0 +1,16 @@
+# Secrets. segredo.ini.example is the committed template.
+shared/segredo.ini
+segredo.ini
+**/segredo.ini
+!**/segredo.ini.example
+
+# Local schedule file, for --source json
+vfz_workschedule_db_resync/schedules.json
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+logs/
+.env
